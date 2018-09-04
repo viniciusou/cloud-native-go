@@ -1,8 +1,6 @@
 package handler
 
 import (
-	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -15,13 +13,19 @@ func BooksHandleFunc(w http.ResponseWriter, r *http.Request) {
 	switch method := r.Method; method {
 	case http.MethodGet:
 		books := AllBooks()
-		writeJSON(w, books)
+		byteSlice, err := repository.WriteJSON(books)
+		if err != nil {
+			http.Error(w, "Error to read JSON "+err.Error(), http.StatusBadRequest)
+			return
+		}
+		w.Header().Add("Content-Type", "application/json: charset=utf-8")
+		w.Write(byteSlice)
 	case http.MethodPost:
 		body, err := ioutil.ReadAll(r.Body)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 		}
-		book := readJSON(body)
+		book := repository.ReadJSON(body)
 		isbn, created := CreateBook(book)
 		if created {
 			w.Header().Add("location", "/api/books/"+isbn)
@@ -56,25 +60,4 @@ func CreateBook(book model.Book) (string, bool) {
 
 	repository.Books[book.ISBN] = book
 	return book.ISBN, true
-}
-
-func writeJSON(w http.ResponseWriter, i interface{}) {
-	byteSlice, err := json.Marshal(i)
-	if err != nil {
-		http.Error(w, "Error to serialize JSON "+err.Error(), http.StatusBadRequest)
-		return
-	}
-
-	w.Header().Add("Content-Type", "application/json: charset=utf-8")
-	w.Write(byteSlice)
-}
-
-func readJSON(data []byte) model.Book {
-	book := model.Book{}
-	err := json.Unmarshal(data, &book)
-	if err != nil {
-		fmt.Println("Error to deserialize JSON", err.Error())
-	}
-
-	return book
 }
