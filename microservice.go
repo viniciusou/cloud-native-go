@@ -11,6 +11,7 @@ import (
 func main() {
 	http.HandleFunc("/api/echo", echo)
 	http.HandleFunc("/api/books", handler.BooksHandleFunc)
+	http.HandleFunc("/api/books/", handler.BookHandleFunc)
 
 	http.ListenAndServe(port(), nil)
 }

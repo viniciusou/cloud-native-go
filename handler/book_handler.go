@@ -8,7 +8,7 @@ import (
 	"github.com/viniciusou/cloud-native-go/repository"
 )
 
-//BooksHandleFunc handles requests for Book API
+//BooksHandleFunc handles requests for Book API from route "/api/books"
 func BooksHandleFunc(w http.ResponseWriter, r *http.Request) {
 	switch method := r.Method; method {
 	case http.MethodGet:
@@ -39,6 +39,30 @@ func BooksHandleFunc(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+//BookHandleFunc handles requests for Book API from route "/api/books/"
+func BookHandleFunc(w http.ResponseWriter, r *http.Request) {
+	isbn := r.URL.Path[len("/api/books/"):]
+
+	switch method := r.Method; method {
+	case http.MethodGet:
+		book, found := GetBook(isbn)
+		if found {
+			byteSlice, err := repository.WriteJSON(book)
+			if err != nil {
+				http.Error(w, "Error to read JSON "+err.Error(), http.StatusBadRequest)
+				return
+			}
+			w.Header().Add("Content-Type", "application/json: charset=utf-8")
+			w.Write(byteSlice)
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+		}
+	default:
+		w.WriteHeader(http.StatusBadRequest)
+		w.Write([]byte("Unsupported request method"))
+	}
+}
+
 //AllBooks return all books from repository
 func AllBooks() []model.Book {
 	values := make([]model.Book, len(repository.Books))
@@ -60,4 +84,11 @@ func CreateBook(book model.Book) (string, bool) {
 
 	repository.Books[book.ISBN] = book
 	return book.ISBN, true
+}
+
+//GetBook returns the book for a given ISBN
+func GetBook(isbn string) (model.Book, bool) {
+	book, found := repository.Books[isbn]
+
+	return book, found
 }
