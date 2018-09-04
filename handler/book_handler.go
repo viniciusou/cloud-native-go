@@ -57,6 +57,18 @@ func BookHandleFunc(w http.ResponseWriter, r *http.Request) {
 		} else {
 			w.WriteHeader(http.StatusNotFound)
 		}
+	case http.MethodPut:
+		body, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+		book := repository.ReadJSON(body)
+		exists := UpdateBook(isbn, book)
+		if exists {
+			w.WriteHeader(http.StatusOK)
+		} else {
+			w.WriteHeader(http.StatusNotFound)
+		}
 	default:
 		w.WriteHeader(http.StatusBadRequest)
 		w.Write([]byte("Unsupported request method"))
@@ -91,4 +103,14 @@ func GetBook(isbn string) (model.Book, bool) {
 	book, found := repository.Books[isbn]
 
 	return book, found
+}
+
+//UpdateBook updates an existing book
+func UpdateBook(isbn string, book model.Book) bool {
+	_, exists := repository.Books[isbn]
+	if exists {
+		repository.Books[isbn] = book
+	}
+
+	return exists
 }
